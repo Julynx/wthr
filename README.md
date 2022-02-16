@@ -17,11 +17,23 @@ It has been tested with Python 3.8.10, results may vary if other versions are us
 <br><br>
 
 ## Installation
-The following commands will download the latest version of wthr from this repository 
-and install it in your `/usr/bin/` directory:
+The first step is to download the latest version of wthr from this repository:
 ```
 git clone https://github.com/Julynx/wthr
 cd wthr
+```
+Now, create an OpenWeatherMap account [here](https://home.openweathermap.org/users/sign_up) and get a free API key.
+
+Then, open the file `wthr` and enter your API key:
+
+```
+nano wthr
+...
+api_key = "Your API key here"
+...
+```
+The final step is to install the file in your `/usr/bin/` directory:
+```
 chmod +x wthr
 sudo cp wthr /usr/bin/
 ```

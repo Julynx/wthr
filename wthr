@@ -160,7 +160,7 @@ icons = {"Clear": clear,
 center = True
 s_buffer = []
 
-api_key = "147e3f537b5ab967c15f105299e38777"
+api_key = "< Your API key here >"
 update_interval = 3600  # Seconds between weather api calls
 city = ""
 lat, lon = "", ""

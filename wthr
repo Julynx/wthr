@@ -1,0 +1,343 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import signal
+import cursor
+import time as tm
+import requests
+import json
+from datetime import datetime, time
+from geopy.geocoders import Nominatim
+
+s_clear_day = [
+    "                      ",
+    "        ██████        ",
+    "    ████      ████    ",
+    "    ██          ██    ",
+    "  ██              ██  ",
+    "  ██              ██  ",
+    "  ██              ██  ",
+    "    ██          ██    ",
+    "    ████      ████    ",
+    "        ██████        ",
+    "                      ",
+    "        -temp-        ",
+    "        -city-        ",
+]
+
+s_clear_nig = [
+    "                      ",
+    "        ██████        ",
+    "    ████      ████    ",
+    "    ██      ██        ",
+    "  ██      ██          ",
+    "  ██      ██          ",
+    "  ██      ██          ",
+    "    ██      ██        ",
+    "    ████      ████    ",
+    "        ██████        ",
+    "                      ",
+    "        -temp-        ",
+    "        -city-        ",
+]
+
+s_thunder = [
+    "                      ",
+    "        ██████        ",
+    "      ██      ██      ",
+    "  ████    ██    ████  ",
+    "██      ██  ██      ██",
+    "██        ████      ██",
+    "  ██████  ██  ██  ██  ",
+    "        ██  ██        ",
+    "        ████          ",
+    "      ████            ",
+    "      ██              ",
+    "                      ",
+    "        -temp-        ",
+    "        -city-        ",
+]
+
+s_snow = [
+    "                      ",
+    "        ██████        ",
+    "      ██      ██      ",
+    "  ████          ████  ",
+    "██                  ██",
+    "██        ██        ██",
+    "  ████  ██  ██  ████  ",
+    "          ██          ",
+    "      ██      ██      ",
+    "    ██  ██  ██  ██    ",
+    "      ██      ██      ",
+    "                      ",
+    "        -temp-        ",
+    "        -city-        ",
+]
+
+s_fog = [
+    "                      ",
+    "    ████████████      ",
+    "                      ",
+    "  ████████████████████",
+    "                      ",
+    "████████████████████  ",
+    "                      ",
+    "      ████████████    ",
+    "                      ",
+    "                      ",
+    "                      ",
+    "                      ",
+    "        -temp-        ",
+    "        -city-        ",
+]
+
+s_clouds = [
+    "                      ",
+    "        ██████        ",
+    "      ██      ██      ",
+    "  ████          ████  ",
+    "██      ████        ██",
+    "██  ████    ██      ██",
+    "  ██          ██████  ",
+    "  ██            ██    ",
+    "    ████████████      ",
+    "                      ",
+    "                      ",
+    "                      ",
+    "        -temp-        ",
+    "        -city-        ",
+]
+
+s_rain = [
+    "                      ",
+    "        ██████        ",
+    "      ██      ██      ",
+    "  ████          ████  ",
+    "██                  ██",
+    "██                  ██",
+    "  ██████████████████  ",
+    "      ██      ██      ",
+    "  ██      ██      ██  ",
+    "  ██  ██  ██  ██  ██  ",
+    "      ██      ██      ",
+    "                      ",
+    "        -temp-        ",
+    "        -city-        ",
+]
+
+s_lrain = [
+    "                      ",
+    "        ██████        ",
+    "      ██      ██      ",
+    "  ████          ████  ",
+    "██                  ██",
+    "██                  ██",
+    "  ██████████████████  ",
+    "      ██      ██      ",
+    "  ██      ██      ██  ",
+    "      ██      ██      ",
+    "  ██      ██      ██  ",
+    "                      ",
+    "        -temp-        ",
+    "        -city-        ",
+]
+
+clear = s_clear_nig if time(8, 00) <= datetime.now().time() >= time(20, 00) \
+    else s_clear_day
+
+icons = {"Clear": clear,
+         "Clouds": s_clouds,
+         "Drizzle": s_lrain,
+         "Rain": s_rain,
+         "Snow": s_snow,
+         "Thunderstorm": s_thunder,
+         "Mist": s_fog, "Smoke": s_fog, "Haze": s_fog, "Dust": s_fog,
+         "Fog": s_fog, "Sand": s_fog, "Ash": s_fog, "Squall": s_fog,
+         "Tornado": s_fog}
+
+center = True
+s_buffer = []
+
+api_key = "147e3f537b5ab967c15f105299e38777"
+update_interval = 3600  # Seconds between weather api calls
+city = ""
+lat, lon = "", ""
+
+
+def main():
+
+    global lat, lon, city
+
+    # Get input arguments
+    if len(sys.argv) == 1:
+        print("Usage:   wthr <City> <Country_Code> ...")
+        print("Example: wthr London GB")
+        exit(1)
+    arg_str = args_to_csv_string(len(sys.argv))
+
+    # Arm signal handler
+    signal.signal(signal.SIGWINCH, handler)
+
+    # Compute location
+    print("Computing latitude and longitude...")
+    print("(This might take a while.)")
+    city, lat, lon = compute_location(arg_str)
+
+    # Hide cursor
+    cursor.hide()
+
+    # Initial display
+    recalculate()
+    redraw()
+
+    # Display loop
+    while True:
+        try:
+            tm.sleep(update_interval)
+            recalculate()
+            redraw()
+        except KeyboardInterrupt:
+            os.system("clear")
+            cursor.show()
+            exit()
+
+
+def handler(signum, frame):
+    """
+    Executes whenever the size of the terminal is changed.
+    Calls redraw() in execution to update the screen.
+    Args:
+        signum (int): The signal number.
+        frame (frame): The frame.
+    """
+    if signum == signal.SIGWINCH:
+        redraw()
+
+
+def redraw():
+    """
+    Clears the screen and redraws the ui.
+    """
+    os.system("clear")
+    print(boxer(s_buffer), end="")
+
+
+def recalculate():
+    """
+    Obtains the current weather from the openweathermap api and
+    updates the global variable s_buffer accordingly.
+    """
+    global s_buffer, api_key    # Weather api key and buffer
+    global lat, lon, city       # Location data
+
+    # Make the API call and load the response
+    url = "https://api.openweathermap.org/data/2.5/" \
+        "onecall?lat=%s&lon=%s&appid=%s&units=metric" % (lat, lon, api_key)
+    response = requests.get(url)
+    data = json.loads(response.text)
+
+    # Parse weather data and temperature
+    status = data["current"]["weather"][0]["main"]
+    temp = data["current"]["temp"]
+    temp = str(temp).split(".")[0]
+
+    # Update global vars
+    s_buffer = icons[status]
+    s_buffer[-1] = f"{city}"
+    s_buffer[-2] = temp + "°C"
+
+
+def boxer(lines):
+    """
+    Creates a box of the terminal size, enclosing the lines
+    passed in as a list of tuples.
+    Args:
+        lines (list): A list of tuples, each containing a line and a boolean.
+        The line is the text to be displayed, and the boolean is whether
+        the line should be centered.
+    Returns:
+        str: A string of the box with the lines fitted in.
+    """
+    string = ""
+
+    # Compute terminal size
+    size = os.get_terminal_size()
+    width = size.columns
+    height = size.lines
+
+    # Add the right amount of empty lines to vertically center the content
+    if center:
+        print("\n" * int((height/2) - ((len(lines)-2)/2)), end="")
+
+    # Print the lines horizontally centered
+    for line in lines:
+        line_len = len(line)
+
+        if line_len > width - 3:
+            line = line[:width - 3] + "..."
+
+        formatted_line = line.center(width)
+        string += formatted_line + "\n"
+
+    return string
+
+
+def args_to_csv_string(max_args):
+    """
+    Converts a list of arguments into a string of comma-separated values.
+    Args:
+        max_args (int): The maximum number of arguments to be converted.
+    Returns:
+        str: A string of comma-separated values.
+    """
+    args = sys.argv[1:]
+    args = args[:max_args]
+    args = [str(arg) for arg in args]
+    return ", ".join(args)
+
+
+def compute_location(city_str):
+    """
+    Computes the latitude and longitude of a city.
+    Args:
+        city_str (str): A string of the city and country code.
+    Returns:
+        tuple: A tuple of the latitude and longitude.
+    """
+    while True:
+        try:
+            # Throws timeout exception if the API call takes too long
+            g = Nominatim(user_agent="wthr")
+            location = g.geocode(city_str)
+
+            # Throws AttributeError if location is None (i.e. no location found)
+            lat = location.latitude
+            lon = location.longitude
+            city = location.address.split(",")[0]
+            break
+
+        # Clean exit if user presses Ctrl+C
+        except KeyboardInterrupt:
+            os.system("clear")
+            cursor.show()
+            exit()
+
+        # Clean exit if the location could not be found
+        except AttributeError:
+            os.system("clear")
+            print("Could not find location of %s." % city_str)
+            cursor.show()
+            exit()
+
+        # Retry if the API call takes too long
+        except:
+            tm.sleep(1)
+            pass
+
+    return city, lat, lon
+
+
+if __name__ == "__main__":
+    main()

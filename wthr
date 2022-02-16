@@ -10,6 +10,10 @@ import json
 from datetime import datetime, time
 from geopy.geocoders import Nominatim
 
+# Visit https://home.openweathermap.org/users/sign_up 
+# to get a free API key and paste it below.
+api_key = "Your API key here"
+
 s_clear_day = [
     "                      ",
     "        ██████        ",
@@ -160,7 +164,6 @@ icons = {"Clear": clear,
 center = True
 s_buffer = []
 
-api_key = "< Your API key here >"
 update_interval = 3600  # Seconds between weather api calls
 city = ""
 lat, lon = "", ""

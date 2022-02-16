@@ -331,7 +331,7 @@ def compute_location(city_str):
             cursor.show()
             exit()
 
-        # Retry if the API call takes too long
+        # Retry if the API call fails
         except:
             tm.sleep(1)
             pass

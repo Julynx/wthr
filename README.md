@@ -10,8 +10,7 @@
 ## Dependencies
 wthr uses [geopy](https://pypi.org/project/geopy/) & [cursor](https://pypi.org/project/cursor/), which can be installed by executing:
 ```
-pip3 install geopy
-pip3 install cursor
+pip3 install geopy cursor
 ```
 It has been tested with Python 3.8.10, results may vary if other versions are used.
 <br><br>

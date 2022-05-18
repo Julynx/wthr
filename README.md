@@ -19,8 +19,6 @@ It has been tested with Python 3.8.10, results may vary if other versions are us
 The first step is to download the latest version of wthr from this repository:
 ```
 git clone https://github.com/Julynx/wthr
-```
-```
 cd wthr
 ```
 Now, create an OpenWeatherMap account [here](https://home.openweathermap.org/users/sign_up) and get a free API key.

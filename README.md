@@ -26,7 +26,7 @@ Now, create an OpenWeatherMap account [here](https://home.openweathermap.org/use
 Then, open the file `wthr` and enter your API key:
 ```
 ...
-api_key = "Your API key here"
+api_key = "YOUR_API_KEY_HERE"
 ...
 ```
 The final step is to install the file in your `/usr/bin/` directory:

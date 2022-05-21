@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from ast import For
+from glob import glob
 import os
 import sys
 import signal
@@ -7,13 +9,16 @@ import cursor
 import time as tm
 import requests
 import json
-from datetime import datetime, time
+from datetime import datetime, time, date, timedelta
 from geopy.geocoders import Nominatim
+import contextlib
+import subprocess
 
-# Visit https://home.openweathermap.org/users/sign_up 
+# Visit https://home.openweathermap.org/users/sign_up
 # to get a free API key and paste it below.
-api_key = "Your API key here"
+api_key = "YOUR_API_KEY_HERE"
 
+# Size = 13
 s_clear_day = [
     "                      ",
     "        ██████        ",
@@ -30,6 +35,7 @@ s_clear_day = [
     "        -city-        ",
 ]
 
+# Size = 13
 s_clear_nig = [
     "                      ",
     "        ██████        ",
@@ -46,15 +52,15 @@ s_clear_nig = [
     "        -city-        ",
 ]
 
+# Size = 13
 s_thunder = [
     "                      ",
     "        ██████        ",
     "      ██      ██      ",
     "  ████    ██    ████  ",
     "██      ██  ██      ██",
-    "██        ████      ██",
-    "  ██████  ██  ██  ██  ",
-    "        ██  ██        ",
+    "██        ██  ██    ██",
+    "  ████  ██  ██    ██  ",
     "        ████          ",
     "      ████            ",
     "      ██              ",
@@ -63,15 +69,15 @@ s_thunder = [
     "        -city-        ",
 ]
 
+#Size = 13
 s_snow = [
     "                      ",
     "        ██████        ",
     "      ██      ██      ",
     "  ████          ████  ",
-    "██                  ██",
     "██        ██        ██",
-    "  ████  ██  ██  ████  ",
-    "          ██          ",
+    "██      ██  ██      ██",
+    "  ██      ██      ██  ",
     "      ██      ██      ",
     "    ██  ██  ██  ██    ",
     "      ██      ██      ",
@@ -80,28 +86,34 @@ s_snow = [
     "        -city-        ",
 ]
 
+
+# Size = 13
 s_fog = [
     "                      ",
-    "    ████████████      ",
+    "                      ",
+    "    ██████████████    ",
     "                      ",
     "  ████████████████████",
     "                      ",
     "████████████████████  ",
     "                      ",
-    "      ████████████    ",
+    "    ██████████████    ",
+    "                      ",
     "                      ",
     "        -temp-        ",
     "        -city-        ",
 ]
 
+# Size = 13
 s_clouds = [
     "                      ",
     "        ██████        ",
     "      ██      ██      ",
     "  ████          ████  ",
+    "██                  ██",
     "██      ████        ██",
-    "██  ████    ██      ██",
-    "  ██          ██████  ",
+    "██  ████    ████    ██",
+    "  ██            ████  ",
     "  ██            ██    ",
     "    ████████████      ",
     "                      ",
@@ -109,6 +121,7 @@ s_clouds = [
     "        -city-        ",
 ]
 
+# Size = 13
 s_rain = [
     "                      ",
     "        ██████        ",
@@ -118,14 +131,14 @@ s_rain = [
     "██                  ██",
     "  ██████████████████  ",
     "      ██      ██      ",
-    "  ██      ██      ██  ",
     "  ██  ██  ██  ██  ██  ",
-    "      ██      ██      ",
+    "  ██      ██      ██  ",
     "                      ",
     "        -temp-        ",
     "        -city-        ",
 ]
 
+# Size = 13
 s_lrain = [
     "                      ",
     "        ██████        ",
@@ -137,7 +150,6 @@ s_lrain = [
     "      ██      ██      ",
     "  ██      ██      ██  ",
     "      ██      ██      ",
-    "  ██      ██      ██  ",
     "                      ",
     "        -temp-        ",
     "        -city-        ",
@@ -162,47 +174,113 @@ s_buffer = []
 update_interval = 3600  # Seconds between weather api calls
 city = ""
 lat, lon = "", ""
+global_packages = []
 
 
 def main():
 
-    global lat, lon, city
+    global lat, lon, city, global_packages
+    mode = "default"
 
     # Get input arguments
-    if len(sys.argv) == 1:
-        print("Usage:   wthr <City> <Country_Code> ...")
-        print("Example: wthr London GB")
-        exit(1)
-    arg_str = args_to_csv_string(len(sys.argv))
-
-    # Arm signal handler
-    signal.signal(signal.SIGWINCH, handler)
+    arg = args(["location"])
+    if "location" not in arg.keys():
+        print("\nDisplays weather information from openweathermap.\n" \
+            "Please, make sure to get your API key and paste it\n" \
+            "at line 19 of this file: 'api_key = YOUR_API_KEY_HERE'.\n" \
+            "\n" \
+            "  Usage:           wthr [LOCATION] [OPTIONS] ...\n" \
+            "  Example:         wthr Dubai\n" \
+            "\n" \
+            "  --mode=default   Equivalent to ommiting the '--mode' flag.\n" \
+            "                   Shows the current weather for the location.\n" \
+            "  --mode=forecast  Displays an 8-day forecast for the location,\n" \
+            "                   including minimum and maximum temperatures.\n")
+        exit()
+    if "--mode" in arg.keys():
+        try:
+            mode = arg["--mode"]
+        except ValueError:
+            mode = "default"
 
     # Compute location
     print("Computing latitude and longitude...")
     print("(This might take a while.)")
+    arg_str = args_to_csv_string(len(sys.argv))
     city, lat, lon = compute_location(arg_str)
 
-    # Hide cursor
-    cursor.hide()
+    # 8-DAY FORECAST MODE
+    if mode == "forecast":
 
-    # Initial display
-    recalculate()
-    redraw()
+        # Arm signal handler
+        signal.signal(signal.SIGWINCH, forecast_handler)
 
-    # Display loop
-    while True:
-        try:
-            tm.sleep(update_interval)
-            recalculate()
-            redraw()
-        except KeyboardInterrupt:
-            os.system("clear")
-            cursor.show()
-            exit()
+        # Initial display
+        subprocess.call(['tput', 'reset'])
+        cursor.hide()
+        global_packages = get_daily_forecast()
+        draw_forecast(global_packages)
+
+        # Display loop
+        while True:
+            try:
+                tm.sleep(update_interval)
+                subprocess.call(['tput', 'reset'])
+                cursor.hide()
+                global_packages = get_daily_forecast()
+                draw_forecast(global_packages)
+            except KeyboardInterrupt:
+                subprocess.call(['tput', 'reset'])
+                cursor.show()
+                exit()
+
+    # REGULAR CURRENT WEATHER MODE
+    else:
+        # Arm signal handler
+        signal.signal(signal.SIGWINCH, default_handler)
+
+        # Hide cursor
+        cursor.hide()
+
+        # Initial display
+        recalculate()
+        redraw()
+
+        # Display loop
+        while True:
+            try:
+                tm.sleep(update_interval)
+                recalculate()
+                redraw()
+            except KeyboardInterrupt:
+                os.system("clear")
+                cursor.show()
+                exit()
 
 
-def handler(signum, frame):
+def args_to_csv_string(max_args):
+    """
+    Converts a list of arguments into a string of comma-separated values.
+    Args:
+        max_args (int): The maximum number of arguments to be converted.
+    Returns:
+        str: A string of comma-separated values.
+    """
+    args = sys.argv[1:]
+    args = args[:max_args]
+    args = [str(arg) for arg in args]
+
+    new_args = []
+
+    for arg in args:
+        if "--mode" in arg:
+            arg = ""
+        new_args.append(arg)
+
+    return ", ".join(new_args)
+
+
+def default_handler(signum, frame):
     """
     Executes whenever the size of the terminal is changed.
     Calls redraw() in execution to update the screen.
@@ -212,6 +290,20 @@ def handler(signum, frame):
     """
     if signum == signal.SIGWINCH:
         redraw()
+
+
+def forecast_handler(signum, frame):
+    """
+    Executes whenever the size of the terminal is changed.
+    Calls redraw() in execution to update the screen.
+    Args:
+        signum (int): The signal number.
+        frame (frame): The frame.
+    """
+    if signum == signal.SIGWINCH:
+        subprocess.call(['tput', 'reset'])
+        cursor.hide()
+        draw_forecast(global_packages)
 
 
 def redraw():
@@ -245,6 +337,101 @@ def recalculate():
     s_buffer = icons[status]
     s_buffer[-1] = f"{city}"
     s_buffer[-2] = temp + "°C"
+
+
+def get_daily_forecast():
+
+    global s_buffer, api_key    # Weather api key and buffer
+    global lat, lon, city       # Location data
+
+    # Make the API call and load the response
+    url = "https://api.openweathermap.org/data/2.5/" \
+        "onecall?lat=%s&lon=%s&appid=%s&units=metric" % (lat, lon, api_key)
+    response = requests.get(url)
+    data = json.loads(response.text)
+
+    mins = [int(data["daily"][x]["temp"]["min"]) + 1 for x in range(8)]
+    maxs = [int(data["daily"][x]["temp"]["max"]) + 1 for x in range(8)]
+    wthr = [data["daily"][x]["weather"][0]["main"] for x in range(8)]
+
+    # Format the data into lists of strings
+    s_buffer = []
+    for i in range(8):
+        s_buffer.append(f"{wthr[i]}")
+        s_buffer.append(f"{mins[i]}°C")
+        s_buffer.append(f"{maxs[i]}°C")
+
+    # Package the data to be returned
+    packages = []
+    i = 0
+    for wthr, x, y in zip(wthr, mins, maxs):
+
+        package = []
+
+        dia = str(date.today() + timedelta(days=i))
+        dia = "/".join(dia.split("-")[::-1])
+
+        package.append(dia.center(22))
+        icono = icons[wthr][:-2]
+
+        for line in icono:
+            package.append(line.center(22))
+
+        package.append((f"| ▼ {x}ºC || ▲ {y}ºC |").center(22))
+        if i == 7:
+            package.append("")
+        else:
+            package.append("")
+            package.append("")
+
+        packages.append(package)
+
+        i += 1
+
+    return packages  # To be printed with draw_forecast()
+
+
+def draw_forecast(pkgs):
+
+    pack1, pack2 = packer(pkgs[0], pkgs[1]), packer(pkgs[2], pkgs[3])
+    pack3, pack4 = packer(pkgs[4], pkgs[5]), packer(pkgs[6], pkgs[7])
+
+    print("")
+    print("8-DAY FORECAST".center(os.get_terminal_size().columns))
+    print("")
+
+    if os.get_terminal_size().columns >= 112:  # 22*4 + 8*3 | 4 columns
+        center_printer(packer(pack1, pack2))
+        print("")
+        center_printer(packer(pack3, pack4)[:-1])
+
+    elif os.get_terminal_size().columns >= 82:  # 22*3 + 8*2 | 3 columns
+        center_printer(packer(packer(pkgs[0], pkgs[1]), pkgs[2]))
+        center_printer(packer(packer(pkgs[3], pkgs[4]), pkgs[5]))
+        center_printer(packer(pkgs[6], pkgs[7]))
+
+    elif os.get_terminal_size().columns >= 52:  # 22*2 + 8*1 | 2 columns
+        center_printer(pack1)
+        center_printer(pack2)
+        center_printer(pack3)
+        center_printer(pack4[:-1])
+
+    elif os.get_terminal_size().columns >= 22:  # 22*1 + 8*0 | 1 column
+        for i in range(8):
+            center_printer(pkgs[i])
+
+    else:  # 0 columns (no space for the forecast)
+        center_printer(["Not enough space!", "", "[Min width: 22]"])
+
+
+def center_printer(list_of_strings):
+    """
+    Prints a list of strings centered.
+    Args:
+        list_of_strings (list): A list of strings.
+    """
+    for string in list_of_strings:
+        print(string.center(os.get_terminal_size().columns))
 
 
 def boxer(lines):
@@ -282,18 +469,49 @@ def boxer(lines):
     return string
 
 
-def args_to_csv_string(max_args):
+def args(positional=[]):
     """
-    Converts a list of arguments into a string of comma-separated values.
-    Args:
-        max_args (int): The maximum number of arguments to be converted.
-    Returns:
-        str: A string of comma-separated values.
+    $: program joe 1234 -keep -host=127.0.0.1
+
+    dictionary = args(["username", "password"])
+
+    >> username:    joe
+    >> password:    1234
+    >> -keep:       True
+    >> -host:       127.0.0.1
     """
-    args = sys.argv[1:]
-    args = args[:max_args]
-    args = [str(arg) for arg in args]
-    return ", ".join(args)
+    args_dict = {}
+
+    # Store positional arguments
+    tail = len(positional)
+    for i, pos_arg in enumerate(positional):
+        with contextlib.suppress(IndexError):
+            if str(sys.argv[i+1]).startswith("-"):
+                tail = i
+                break
+            value = sys.argv[i+1]
+            args_dict[pos_arg] = value
+
+    # Store flags
+    for i in range(tail+1, len(sys.argv)):
+        try:
+            value = str(sys.argv[i]).split("=")[1]
+        except IndexError:
+            value = True
+        args_dict[str(sys.argv[i]).split("=")[0]] = value
+
+    return args_dict
+
+
+def packer(list1, list2):
+
+    list_return = []
+
+    for str1, str2 in zip(list1, list2):
+        str_aux = str1 + "        " + str2
+        list_return.append(str_aux)
+
+    return list_return
 
 
 def compute_location(city_str):

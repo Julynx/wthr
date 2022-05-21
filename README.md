@@ -40,7 +40,7 @@ The program can now be ran from a terminal with the command `wthr`.
 ## Usage
 ```
 Displays weather information from openweathermap.
-Please, make sure to get your API key and paste it
+Please, make sure to get your free API key and paste it
 at line 19 of this file: 'api_key = YOUR_API_KEY_HERE'.
 
   Usage:           wthr [LOCATION] [OPTIONS] ...

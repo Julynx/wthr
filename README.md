@@ -49,5 +49,5 @@ at line 19 of this file: 'api_key = YOUR_API_KEY_HERE'.
   --mode=default   Equivalent to ommiting the '--mode' flag.
                    Shows the current weather for the location.
   --mode=forecast  Displays an 8-day forecast for the location,
-                   including minimum and maximum temperatures
+                   including minimum and maximum temperatures.
 ```

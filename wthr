@@ -15,8 +15,12 @@ import contextlib
 import subprocess
 
 # Visit https://home.openweathermap.org/users/sign_up
-# to get a free API key and paste it below.
+# to get a free API key.
 api_key = "YOUR_API_KEY_HERE"
+
+# If you do not paste your API key above, the program
+# will ask you for it and save it into the file:
+# ~/.config/wthr/api_key
 
 # Size = 13
 s_clear_day = [
@@ -185,23 +189,24 @@ def main():
     # Get input arguments
     arg = args(["location"])
     if "location" not in arg.keys():
-        print("\nDisplays weather information from openweathermap.\n" \
-            "Please, make sure to get your API key and paste it\n" \
-            "at line 19 of this file: 'api_key = YOUR_API_KEY_HERE'.\n" \
-            "\n" \
-            "  Usage:           wthr [LOCATION] [OPTIONS] ...\n" \
-            "  Example:         wthr Dubai\n" \
-            "\n" \
-            "  --mode=default   Equivalent to ommiting the '--mode' flag.\n" \
-            "                   Shows the current weather for the location.\n" \
-            "  --mode=forecast  Displays an 8-day forecast for the location,\n" \
-            "                   including minimum and maximum temperatures.\n")
+        print("\nDisplays weather information from openweathermap.\n"
+              "\n"
+              "  Usage:           wthr [LOCATION] [OPTIONS] ...\n"
+              "  Example:         wthr Dubai\n"
+              "\n"
+              "  --mode=default   Equivalent to ommiting the '--mode' flag.\n"
+              "                   Shows the current weather for the location.\n"
+              "  --mode=forecast  Displays an 8-day forecast for the location,\n"
+              "                   including minimum and maximum temperatures.\n")
         exit()
     if "--mode" in arg.keys():
         try:
             mode = arg["--mode"]
         except ValueError:
             mode = "default"
+
+    # Setup API key
+    setup_api_key()
 
     # Compute location
     print("Computing latitude and longitude...")
@@ -219,6 +224,10 @@ def main():
         subprocess.call(['tput', 'reset'])
         cursor.hide()
         global_packages = get_daily_forecast()
+        if str(global_packages).startswith("KEY_ERROR"):
+            print("\n" + str(global_packages))
+            cursor.show()
+            exit()
         draw_forecast(global_packages)
 
         # Display loop
@@ -228,6 +237,10 @@ def main():
                 subprocess.call(['tput', 'reset'])
                 cursor.hide()
                 global_packages = get_daily_forecast()
+                if str(global_packages).startswith("KEY_ERROR"):
+                    print("\n" + str(global_packages))
+                    cursor.show()
+                    exit()
                 draw_forecast(global_packages)
             except KeyboardInterrupt:
                 subprocess.call(['tput', 'reset'])
@@ -243,14 +256,23 @@ def main():
         cursor.hide()
 
         # Initial display
-        recalculate()
+        status = recalculate()
+        if str(status).startswith("KEY_ERROR"):
+            print("\n" + status)
+            cursor.show()
+            exit()
+
         redraw()
 
         # Display loop
         while True:
             try:
                 tm.sleep(update_interval)
-                recalculate()
+                status = recalculate()
+                if str(status).startswith("KEY_ERROR"):
+                    print("\n" + status)
+                    cursor.show()
+                    exit()
                 redraw()
             except KeyboardInterrupt:
                 os.system("clear")
@@ -329,9 +351,12 @@ def recalculate():
     data = json.loads(response.text)
 
     # Parse weather data and temperature
-    status = data["current"]["weather"][0]["main"]
-    temp = data["current"]["temp"]
-    temp = str(temp).split(".")[0]
+    try:
+        status = data["current"]["weather"][0]["main"]
+        temp = data["current"]["temp"]
+        temp = str(temp).split(".")[0]
+    except KeyError:
+        return "KEY_ERROR: Invalid API key."
 
     # Update global vars
     s_buffer = icons[status]
@@ -350,9 +375,13 @@ def get_daily_forecast():
     response = requests.get(url)
     data = json.loads(response.text)
 
-    mins = [int(data["daily"][x]["temp"]["min"]) + 1 for x in range(8)]
-    maxs = [int(data["daily"][x]["temp"]["max"]) + 1 for x in range(8)]
-    wthr = [data["daily"][x]["weather"][0]["main"] for x in range(8)]
+    try:
+        mins = [int(data["daily"][x]["temp"]["min"]) + 1 for x in range(8)]
+        maxs = [int(data["daily"][x]["temp"]["max"]) + 1 for x in range(8)]
+        wthr = [data["daily"][x]["weather"][0]["main"] for x in range(8)]
+
+    except KeyError:
+        return "KEY_ERROR: Invalid API key."
 
     # Format the data into lists of strings
     s_buffer = []
@@ -420,7 +449,8 @@ def draw_forecast(pkgs):
         for i in range(8):
             center_printer(pkgs[i])
 
-    else:  # 0 columns (no space for the forecast)
+    # 0 columns (no space for the forecast)
+    else:
         center_printer(["Not enough space!", "", "[Min width: 22]"])
 
 
@@ -467,6 +497,70 @@ def boxer(lines):
         string += formatted_line + "\n"
 
     return string
+
+
+API_FILE = os.path.expanduser("~") + "/.config/wthr/api_key"
+
+
+def setup_api_key():
+
+    global api_key
+
+    if test_api_key(api_key):
+
+        # DO NOTHING IF API KEY IS ALREADY SET
+        return
+
+    elif os.path.isfile(API_FILE):
+
+        # UPDATE THE KEY FROM THE FILE IF THE FILE EXISTS
+        with open(API_FILE, "r") as f:
+            api_key = f.readline().strip()
+
+    else:
+
+        subprocess.call(['tput', 'reset'])
+
+        # ASK FOR THE API KEY
+        print("")
+        center_printer(["INITIAL SETUP"])
+        print("\nPlease visit https://home.openweathermap.org/users/sign_up \n"
+              "to get a free API key.\n")
+
+        # CHECK ITS VALIDITY
+        valid = False
+        while not valid:
+            try:
+                aux_key = input("[Enter your API key]: ")
+            except KeyboardInterrupt:
+                subprocess.call(['tput', 'reset'])
+                exit()
+
+            print("")
+            valid = test_api_key(aux_key)
+            if not valid:
+                print("Invalid API key!")
+
+        # CREATE THE FOLDERS ALONG THE ROUTE AND WRITE THE API KEY
+        os.makedirs(os.path.dirname(API_FILE), exist_ok=True)
+        with open(API_FILE, "w") as f:
+            f.write(aux_key)
+
+        # UPDATE THE GLOBAL VARIABLE
+        api_key = aux_key
+
+
+def test_api_key(test_key):
+
+    try:
+        url = "https://api.openweathermap.org/data/2.5/" \
+            "onecall?lat=%s&lon=%s&appid=%s&units=metric" % (0, 0, test_key)
+        response = requests.get(url)
+        data = json.loads(response.text)
+        data["current"]["weather"][0]["main"]
+        return True
+    except:
+        return False
 
 
 def args(positional=[]):

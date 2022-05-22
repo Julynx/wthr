@@ -195,15 +195,19 @@ def main():
               "  Example:         wthr Dubai\n"
               "\n"
               "  --mode=default   Equivalent to ommiting the '--mode' flag.\n"
-              "                   Shows the current weather for the location.\n"
+              "  -d               Shows the current weather for the location.\n"
               "  --mode=forecast  Displays an 8-day forecast for the location,\n"
-              "                   including minimum and maximum temperatures.\n")
+              "  -f               including minimum and maximum temperatures.\n")
         exit()
+
     if "--mode" in arg.keys():
         try:
             mode = arg["--mode"]
         except ValueError:
             mode = "default"
+
+    if "-f" in arg.keys():
+        mode = "forecast"
 
     # Setup API key
     setup_api_key()
@@ -425,32 +429,76 @@ def draw_forecast(pkgs):
     pack1, pack2 = packer(pkgs[0], pkgs[1]), packer(pkgs[2], pkgs[3])
     pack3, pack4 = packer(pkgs[4], pkgs[5]), packer(pkgs[6], pkgs[7])
 
-    print("")
-    print("8-DAY FORECAST".center(os.get_terminal_size().columns))
-    print("")
-
     if os.get_terminal_size().columns >= 112:  # 22*4 + 8*3 | 4 columns
+
+        # PADDING TO VERTICALLY CENTER THE CONTENT
+        term_size = os.get_terminal_size().lines
+        text_len = 2*len(pack1) + 2
+        print("\n"*int((term_size-text_len)/2), end="")
+
+        print("")
+        print("8-DAY FORECAST".center(os.get_terminal_size().columns))
+        print("")
+
         center_printer(packer(pack1, pack2))
         print("")
         center_printer(packer(pack3, pack4)[:-1])
 
     elif os.get_terminal_size().columns >= 82:  # 22*3 + 8*2 | 3 columns
+
+        # PADDING TO VERTICALLY CENTER THE CONTENT
+        term_size = os.get_terminal_size().lines
+        text_len = 3*len(pack1) + 1
+        print("\n"*int((term_size-text_len)/2), end="")
+
+        print("")
+        print("8-DAY FORECAST".center(os.get_terminal_size().columns))
+        print("")
+
         center_printer(packer(packer(pkgs[0], pkgs[1]), pkgs[2]))
         center_printer(packer(packer(pkgs[3], pkgs[4]), pkgs[5]))
-        center_printer(packer(pkgs[6], pkgs[7]))
+        center_printer(packer(pkgs[6], pkgs[7])[:-1])
 
     elif os.get_terminal_size().columns >= 52:  # 22*2 + 8*1 | 2 columns
+
+        # PADDING TO VERTICALLY CENTER THE CONTENT
+        term_size = os.get_terminal_size().lines
+        text_len = 4*len(pack1) + 1
+        print("\n"*int((term_size-text_len)/2), end="")
+
+        print("")
+        print("8-DAY FORECAST".center(os.get_terminal_size().columns))
+        print("")
+
         center_printer(pack1)
         center_printer(pack2)
         center_printer(pack3)
         center_printer(pack4[:-1])
 
     elif os.get_terminal_size().columns >= 22:  # 22*1 + 8*0 | 1 column
-        for i in range(8):
-            center_printer(pkgs[i])
 
-    # 0 columns (no space for the forecast)
-    else:
+        # PADDING TO VERTICALLY CENTER THE CONTENT
+        term_size = os.get_terminal_size().lines
+        text_len = 8*len(pack1) + 1
+        print("\n"*int((term_size-text_len)/2), end="")
+
+        print("")
+        print("8-DAY FORECAST".center(os.get_terminal_size().columns))
+        print("")
+
+        for i in range(8):
+            if i != 7:
+                center_printer(pkgs[i])
+            else:
+                center_printer(pkgs[i][:-1])
+
+    else:  # 0 columns (no space for the forecast)
+
+        # PADDING TO VERTICALLY CENTER THE CONTENT
+        term_size = os.get_terminal_size().lines
+        text_len = 3
+        print("\n"*int((term_size-text_len)/2), end="")
+
         center_printer(["Not enough space!", "", "[Min width: 22]"])
 
 
@@ -622,7 +670,7 @@ def compute_location(city_str):
             g = Nominatim(user_agent="wthr")
             location = g.geocode(city_str)
 
-            # Throws AttributeError if location is None (i.e. no location found)
+            # Throws AttributeError if location is None (no location found)
             lat = location.latitude
             lon = location.longitude
             city = location.address.split(",")[0]

@@ -189,7 +189,7 @@ def main():
     # Get input arguments
     arg = args(["location"])
     if "location" not in arg.keys():
-        print("\nDisplays weather information from openweathermap.\n"
+        print("\n  Displays weather information from openweathermap.\n"
               "\n"
               "  Usage:           wthr [LOCATION] [OPTIONS] ...\n"
               "  Example:         wthr Dubai\n"

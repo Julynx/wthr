@@ -16,32 +16,27 @@ It has been tested with Python 3.8.10, results may vary if other versions are us
 <br><br>
 
 ## Installation
-The first step is to download the latest version of wthr from this repository:
+
+> Create an [OpenWeatherMap](https://home.openweathermap.org/users/sign_up) account  and get a free API key. <br>You will be asked for the key the first time you run [wthr](https://github.com/Julynx/wthr).
+
+Download the latest version of [wthr](https://github.com/Julynx/wthr) from this repository:
 ```
 git clone https://github.com/Julynx/wthr
 cd wthr
 ```
-Now, create an OpenWeatherMap account [here](https://home.openweathermap.org/users/sign_up) and get a free API key.
 
-Then, open the file `wthr` and enter your API key:
-```
-...
-api_key = "YOUR_API_KEY_HERE"
-...
-```
-The final step is to install the file in your `/usr/bin/` directory:
+Then, run the following commands to install [wthr](https://github.com/Julynx/wthr) in your `/usr/bin/` directory:
 ```
 sudo chmod +x wthr
 sudo cp wthr /usr/bin/
 ```
+
 The program can now be ran from a terminal with the command `wthr`.
 <br><br>
 
 ## Usage
 ```
-Displays weather information from openweathermap.
-Please, make sure to get your free API key and paste it
-at line 19 of this file: 'api_key = YOUR_API_KEY_HERE'.
+  Displays weather information from openweathermap.
 
   Usage:           wthr [LOCATION] [OPTIONS] ...
   Example:         wthr Dubai

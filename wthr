@@ -194,8 +194,8 @@ def main():
               "  Usage:           wthr [LOCATION] [OPTIONS] ...\n"
               "  Example:         wthr Dubai\n"
               "\n"
-              "  --mode=default   Equivalent to ommiting the '--mode' flag.\n"
-              "  -d               Shows the current weather for the location.\n"
+              "  --mode=default   Equivalent to ommiting the '--mode' flag,\n"
+              "  -d               shows the current weather for the location.\n"
               "  --mode=forecast  Displays an 8-day forecast for the location,\n"
               "  -f               including minimum and maximum temperatures.\n")
         exit()

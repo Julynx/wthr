@@ -41,8 +41,8 @@ The program can now be ran from a terminal with the command `wthr`.
   Usage:           wthr [LOCATION] [OPTIONS] ...
   Example:         wthr Dubai
 
-  --mode=default   Equivalent to ommiting the '--mode' flag.
-  -d               Shows the current weather for the location.
+  --mode=default   Equivalent to ommiting the '--mode' flag,
+  -d               shows the current weather for the location.
   --mode=forecast  Displays an 8-day forecast for the location,
   -f               including minimum and maximum temperatures.
 ```

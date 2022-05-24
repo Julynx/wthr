@@ -22,7 +22,6 @@ api_key = "YOUR_API_KEY_HERE"
 
 debug = False  # Set with --verbose flag
 
-# Size = 13
 s_clear_day = [
     "                      ",
     "        ██████        ",
@@ -39,7 +38,6 @@ s_clear_day = [
     "        -city-        ",
 ]
 
-# Size = 13
 s_clear_nig = [
     "                      ",
     "        ██████        ",
@@ -56,7 +54,6 @@ s_clear_nig = [
     "        -city-        ",
 ]
 
-# Size = 13
 s_thunder = [
     "                      ",
     "        ██████        ",
@@ -73,7 +70,22 @@ s_thunder = [
     "        -city-        ",
 ]
 
-#Size = 13
+s_tornado = [
+    "                      ",
+    "      ██████████████  ",
+    "                      ",
+    "        ██████████    ",
+    "                      ",
+    "        ██████        ",
+    "                      ",
+    "        ████          ",
+    "                      ",
+    "          ██          ",
+    "                      ",
+    "        -temp-        ",
+    "        -city-        ",
+]
+
 s_snow = [
     "                      ",
     "        ██████        ",
@@ -90,8 +102,6 @@ s_snow = [
     "        -city-        ",
 ]
 
-
-# Size = 13
 s_fog = [
     "                      ",
     "                      ",
@@ -108,7 +118,70 @@ s_fog = [
     "        -city-        ",
 ]
 
-# Size = 13
+s_smoke = [
+    "                      ",
+    "                      ",
+    "    ██  ██  ██  ██    ",
+    "                      ",
+    "  ██  ████  ██  ██  ██",
+    "                      ",
+    "██  ██  ██  ████  ██  ",
+    "                      ",
+    "    ██  ██  ██  ██    ",
+    "                      ",
+    "                      ",
+    "        -temp-        ",
+    "        -city-        ",
+]
+
+s_dust = [
+    "                      ",
+    "██      ██    ██    ██",
+    "    ██    ██      ██  ",
+    "  ██  ██      ██    ██",
+    "    ██      ██  ██    ",
+    "██      ██    ██      ",
+    "  ██              ██  ",
+    "      ██    ██      ██",
+    "    ██  ██      ██    ",
+    "██    ██      ██  ██  ",
+    "                      ",
+    "        -temp-        ",
+    "        -city-        ",
+]
+
+s_ash = [
+    "                      ",
+    "██      ██    ██    ██",
+    "    ██    ██      ████",
+    "  ██████      ██    ██",
+    "    ██      ██████    ",
+    "██      ██    ██      ",
+    "  ██      ██      ██  ",
+    "      ██    ██      ██",
+    "    ██████      ██    ",
+    "██    ██      ██████  ",
+    "                      ",
+    "        -temp-        ",
+    "        -city-        ",
+]
+
+s_squall = [
+    "                      ",
+    "            ████      ",
+    "              ██      ",
+    "  ██████████████  ████",
+    "                    ██",
+    "██████████████████████",
+    "                    ██",
+    "  ██████████████  ████",
+    "              ██      ",
+    "            ████      ",
+    "                      ",
+    "        -temp-        ",
+    "        -city-        ",
+]
+
 s_clouds = [
     "                      ",
     "        ██████        ",
@@ -125,7 +198,6 @@ s_clouds = [
     "        -city-        ",
 ]
 
-# Size = 13
 s_rain = [
     "                      ",
     "        ██████        ",
@@ -142,7 +214,6 @@ s_rain = [
     "        -city-        ",
 ]
 
-# Size = 13
 s_lrain = [
     "                      ",
     "        ██████        ",
@@ -159,8 +230,11 @@ s_lrain = [
     "        -city-        ",
 ]
 
-clear = s_clear_nig if time(8, 00) <= datetime.now().time() >= time(20, 00) \
-    else s_clear_day
+clear = s_clear_day
+if time(20, 00) <= datetime.now().time() <= time(24, 00):
+    clear = s_clear_nig
+elif time(00, 00) <= datetime.now().time() <= time(8, 00):
+    clear = s_clear_nig
 
 icons = {"Clear": clear,
          "Clouds": s_clouds,
@@ -168,9 +242,12 @@ icons = {"Clear": clear,
          "Rain": s_rain,
          "Snow": s_snow,
          "Thunderstorm": s_thunder,
-         "Mist": s_fog, "Smoke": s_fog, "Haze": s_fog, "Dust": s_fog,
-         "Fog": s_fog, "Sand": s_fog, "Ash": s_fog, "Squall": s_fog,
-         "Tornado": s_fog}
+         "Smoke": s_smoke,
+         "Dust": s_dust, "Sand": s_dust,
+         "Fog": s_fog, "Mist": s_fog, "Haze": s_fog,
+         "Ash": s_ash,
+         "Squall": s_squall,
+         "Tornado": s_tornado}
 
 center = True
 s_buffer = []

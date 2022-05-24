@@ -17,7 +17,9 @@ It has been tested with Python 3.8.10, results may vary if other versions are us
 
 ## Installation
 
-> Create an [OpenWeatherMap](https://home.openweathermap.org/users/sign_up) account  and get a free API key. <br>You will be asked for the key the first time you run [wthr](https://github.com/Julynx/wthr).
+> Create an [OpenWeatherMap](https://home.openweathermap.org/users/sign_up) account  and get a free API key. <br>You will be asked for the key the first time you run [wthr](https://github.com/Julynx/wthr).<br>
+
+> Please note that [OpenWeatherMap](https://home.openweathermap.org) may take some time (hours) to activate newly created keys. They will appear as invalid for [wthr](https://github.com/Julynx/wthr) during that time.
 
 Download the latest version of [wthr](https://github.com/Julynx/wthr) from this repository:
 ```

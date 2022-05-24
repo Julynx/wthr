@@ -22,6 +22,8 @@ api_key = "YOUR_API_KEY_HERE"
 # will ask you for it and save it into the file:
 # ~/.config/wthr/api_key
 
+debug = False  # Set with --verbose flag
+
 # Size = 13
 s_clear_day = [
     "                      ",
@@ -183,7 +185,7 @@ global_packages = []
 
 def main():
 
-    global lat, lon, city, global_packages
+    global lat, lon, city, global_packages, debug
     mode = "default"
 
     # Get input arguments
@@ -197,7 +199,9 @@ def main():
               "  --mode=default   Equivalent to ommiting the '--mode' flag,\n"
               "  -d               shows the current weather for the location.\n"
               "  --mode=forecast  Displays an 8-day forecast for the location,\n"
-              "  -f               including minimum and maximum temperatures.\n")
+              "  -f               including minimum and maximum temperatures.\n"
+              "  --verbose        Prints debug information whenever an API\n"
+              "  -v               call fails due to a key error.\n")
         exit()
 
     if "--mode" in arg.keys():
@@ -208,6 +212,11 @@ def main():
 
     if "-f" in arg.keys():
         mode = "forecast"
+
+    if "--verbose" in arg.keys() or "-v" in arg.keys():
+        debug = True
+        print("Running in debug mode.")
+        tm.sleep(1)
 
     # Setup API key
     setup_api_key()
@@ -299,7 +308,7 @@ def args_to_csv_string(max_args):
     new_args = []
 
     for arg in args:
-        if "--mode" in arg:
+        if arg.startswith("-"):
             arg = ""
         new_args.append(arg)
 
@@ -359,8 +368,16 @@ def recalculate():
         status = data["current"]["weather"][0]["main"]
         temp = data["current"]["temp"]
         temp = str(temp).split(".")[0]
+
     except KeyError:
-        return "KEY_ERROR: Invalid API key."
+
+        ret_val = "KEY_ERROR in recalculate(): Invalid API key."
+
+        if debug:
+            ret_val += "\n - DEBUG INFORMATION FOLLOWS - \n"
+            ret_val += str(json.dumps(data, indent=4, sort_keys=True))
+
+        return ret_val
 
     # Update global vars
     s_buffer = icons[status]
@@ -385,7 +402,14 @@ def get_daily_forecast():
         wthr = [data["daily"][x]["weather"][0]["main"] for x in range(8)]
 
     except KeyError:
-        return "KEY_ERROR: Invalid API key."
+
+        ret_val = "KEY_ERROR in get_daily_forecast(): Invalid API key."
+
+        if debug:
+            ret_val += "\n - DEBUG INFORMATION FOLLOWS - \n"
+            ret_val += str(json.dumps(data, indent=4, sort_keys=True))
+
+        return ret_val
 
     # Format the data into lists of strings
     s_buffer = []
@@ -554,7 +578,7 @@ def setup_api_key():
 
     global api_key
 
-    if test_api_key(api_key):
+    if str(test_api_key(api_key)).startswith("OK"):
 
         # DO NOTHING IF API KEY IS ALREADY SET
         return
@@ -576,8 +600,8 @@ def setup_api_key():
               "to get a free API key.\n")
 
         # CHECK ITS VALIDITY
-        valid = False
-        while not valid:
+        valid = "KEY_ERROR in setup_api_key(): Untested."
+        while valid.startswith("KEY_ERROR"):
             try:
                 aux_key = input("[Enter your API key]: ")
             except KeyboardInterrupt:
@@ -586,8 +610,8 @@ def setup_api_key():
 
             print("")
             valid = test_api_key(aux_key)
-            if not valid:
-                print("Invalid API key!")
+            if valid.startswith("KEY_ERROR"):
+                print(valid)
 
         # CREATE THE FOLDERS ALONG THE ROUTE AND WRITE THE API KEY
         os.makedirs(os.path.dirname(API_FILE), exist_ok=True)
@@ -600,15 +624,24 @@ def setup_api_key():
 
 def test_api_key(test_key):
 
+    url = "https://api.openweathermap.org/data/2.5/" \
+        "onecall?lat=%s&lon=%s&appid=%s&units=metric" % (0, 0, test_key)
+    response = requests.get(url)
+    data = json.loads(response.text)
+
     try:
-        url = "https://api.openweathermap.org/data/2.5/" \
-            "onecall?lat=%s&lon=%s&appid=%s&units=metric" % (0, 0, test_key)
-        response = requests.get(url)
-        data = json.loads(response.text)
         data["current"]["weather"][0]["main"]
-        return True
-    except:
-        return False
+        return "OK"
+
+    except KeyError:
+
+        ret_val = "KEY_ERROR in test_api_key(): Invalid API key."
+
+        if debug:
+            ret_val += "\n - DEBUG INFORMATION FOLLOWS - \n"
+            ret_val += str(json.dumps(data, indent=4, sort_keys=True))
+
+        return ret_val
 
 
 def args(positional=[]):

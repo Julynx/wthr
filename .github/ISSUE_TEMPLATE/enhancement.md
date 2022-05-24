@@ -9,11 +9,11 @@ assignees: ''
 
 **If your issue is related with an error or unexpected behavior please fill in a [BUG] report instead.**
 
-**Describe the functionality you would like to see included into the app**
+**Describe the functionality you would like to see in the app**
 Give a detailed explanation of the desired functionality and an actual use case.
 Please provide external references if possible.
 
-**Please detail any side effects or problems that you believe may arise from implementing the functionality you request**
+**Please detail any side effects or problems that you believe may arise from implementing the requested functionality**
 This will give developers and users a more accurate idea of the positive and negative consequences of the proposed modification.
 
 **Finally, include a link If you have already implemented the desired functionality in a fork.**

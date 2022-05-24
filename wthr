@@ -168,9 +168,9 @@ s_ash = [
 
 s_squall = [
     "                      ",
-    "            ████      ",
-    "              ██      ",
-    "  ██████████████  ████",
+    "          ████        ",
+    "            ██        ",
+    "  ████████████    ████",
     "                    ██",
     "██████████████████████",
     "                    ██",
@@ -231,7 +231,7 @@ s_lrain = [
 ]
 
 clear = s_clear_day
-if time(20, 00) <= datetime.now().time() <= time(24, 00):
+if time(20, 00) <= datetime.now().time() <= time(23, 59):
     clear = s_clear_nig
 elif time(00, 00) <= datetime.now().time() <= time(8, 00):
     clear = s_clear_nig

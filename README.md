@@ -47,4 +47,6 @@ The program can now be ran from a terminal with the command `wthr`.
   -d               shows the current weather for the location.
   --mode=forecast  Displays an 8-day forecast for the location,
   -f               including minimum and maximum temperatures.
+  --verbose        Prints debug information whenever an API
+  -v               call fails due to a key error.
 ```

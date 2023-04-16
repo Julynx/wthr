@@ -22,6 +22,7 @@ api_key = "YOUR_API_KEY_HERE"
 
 debug = False  # Set with --verbose flag
 
+
 s_clear_day = [
     "                      ",
     "        ██████        ",
@@ -305,9 +306,6 @@ def main():
     # 8-DAY FORECAST MODE
     if mode == "forecast":
 
-        # Arm signal handler
-        signal.signal(signal.SIGWINCH, forecast_handler)
-
         # Initial display
         subprocess.call(['tput', 'reset'])
         cursor.hide()
@@ -316,7 +314,11 @@ def main():
             print("\n" + str(global_packages))
             cursor.show()
             exit()
+
         draw_forecast(global_packages)
+
+        # Arm signal handler
+        signal.signal(signal.SIGWINCH, forecast_handler)
 
         # Display loop
         while True:
@@ -337,8 +339,6 @@ def main():
 
     # REGULAR CURRENT WEATHER MODE
     else:
-        # Arm signal handler
-        signal.signal(signal.SIGWINCH, default_handler)
 
         # Hide cursor
         cursor.hide()
@@ -351,6 +351,9 @@ def main():
             exit()
 
         redraw()
+
+        # Arm signal handler
+        signal.signal(signal.SIGWINCH, default_handler)
 
         # Display loop
         while True:
@@ -525,90 +528,95 @@ def get_daily_forecast():
 
 def draw_forecast(pkgs):
 
+    terminal_size = os.get_terminal_size()
+
     pack1, pack2 = packer(pkgs[0], pkgs[1]), packer(pkgs[2], pkgs[3])
     pack3, pack4 = packer(pkgs[4], pkgs[5]), packer(pkgs[6], pkgs[7])
 
-    if os.get_terminal_size().columns >= 112:  # 22*4 + 8*3 | 4 columns
+    if terminal_size.columns >= 112:  # 22*4 + 8*3 | 4 columns
 
         # PADDING TO VERTICALLY CENTER THE CONTENT
-        term_size = os.get_terminal_size().lines
+        term_lines = terminal_size.lines
         text_len = 2*len(pack1) + 2
-        print("\n"*int((term_size-text_len)/2), end="")
+        print("\n"*int((term_lines-text_len)/2), end="")
 
         print("")
-        print("8-DAY FORECAST".center(os.get_terminal_size().columns))
+        print("8-DAY FORECAST".center(terminal_size.columns))
         print("")
 
-        center_printer(packer(pack1, pack2))
+        center_printer(terminal_size, packer(pack1, pack2))
         print("")
-        center_printer(packer(pack3, pack4)[:-1])
+        center_printer(terminal_size, packer(pack3, pack4)[:-1])
 
-    elif os.get_terminal_size().columns >= 82:  # 22*3 + 8*2 | 3 columns
+    elif terminal_size.columns >= 82:  # 22*3 + 8*2 | 3 columns
 
         # PADDING TO VERTICALLY CENTER THE CONTENT
-        term_size = os.get_terminal_size().lines
+        term_lines = terminal_size.lines
         text_len = 3*len(pack1) + 1
-        print("\n"*int((term_size-text_len)/2), end="")
+        print("\n"*int((term_lines-text_len)/2), end="")
 
         print("")
-        print("8-DAY FORECAST".center(os.get_terminal_size().columns))
+        print("8-DAY FORECAST".center(terminal_size.columns))
         print("")
 
-        center_printer(packer(packer(pkgs[0], pkgs[1]), pkgs[2]))
-        center_printer(packer(packer(pkgs[3], pkgs[4]), pkgs[5]))
-        center_printer(packer(pkgs[6], pkgs[7])[:-1])
+        center_printer(terminal_size, packer(
+            packer(pkgs[0], pkgs[1]), pkgs[2]))
+        center_printer(terminal_size, packer(
+            packer(pkgs[3], pkgs[4]), pkgs[5]))
+        center_printer(terminal_size, packer(pkgs[6], pkgs[7])[:-1])
 
-    elif os.get_terminal_size().columns >= 52:  # 22*2 + 8*1 | 2 columns
+    elif terminal_size.columns >= 52:  # 22*2 + 8*1 | 2 columns
 
         # PADDING TO VERTICALLY CENTER THE CONTENT
-        term_size = os.get_terminal_size().lines
+        term_lines = terminal_size.lines
         text_len = 4*len(pack1) + 1
-        print("\n"*int((term_size-text_len)/2), end="")
+        print("\n"*int((term_lines-text_len)/2), end="")
 
         print("")
-        print("8-DAY FORECAST".center(os.get_terminal_size().columns))
+        print("8-DAY FORECAST".center(terminal_size.columns))
         print("")
 
-        center_printer(pack1)
-        center_printer(pack2)
-        center_printer(pack3)
-        center_printer(pack4[:-1])
+        center_printer(terminal_size, pack1)
+        center_printer(terminal_size, pack2)
+        center_printer(terminal_size, pack3)
+        center_printer(terminal_size, pack4[:-1])
 
-    elif os.get_terminal_size().columns >= 22:  # 22*1 + 8*0 | 1 column
+    elif terminal_size.columns >= 22:  # 22*1 + 8*0 | 1 column
 
         # PADDING TO VERTICALLY CENTER THE CONTENT
-        term_size = os.get_terminal_size().lines
+        term_lines = terminal_size.lines
         text_len = 8*len(pack1) + 1
-        print("\n"*int((term_size-text_len)/2), end="")
+        print("\n"*int((term_lines-text_len)/2), end="")
 
         print("")
-        print("8-DAY FORECAST".center(os.get_terminal_size().columns))
+        print("8-DAY FORECAST".center(terminal_size.columns))
         print("")
 
         for i in range(8):
             if i != 7:
-                center_printer(pkgs[i])
+                center_printer(terminal_size, pkgs[i])
             else:
-                center_printer(pkgs[i][:-1])
+                center_printer(terminal_size, pkgs[i][:-1])
 
     else:  # 0 columns (no space for the forecast)
 
         # PADDING TO VERTICALLY CENTER THE CONTENT
-        term_size = os.get_terminal_size().lines
+        term_lines = terminal_size.lines
         text_len = 3
-        print("\n"*int((term_size-text_len)/2), end="")
+        print("\n"*int((term_lines-text_len)/2), end="")
 
-        center_printer(["Not enough space!", "", "[Min width: 22]"])
+        center_printer(terminal_size, [
+                       "Not enough space!", "", "[Min width: 22]"])
 
 
-def center_printer(list_of_strings):
+def center_printer(terminal_size, list_of_strings):
     """
     Prints a list of strings centered.
     Args:
         list_of_strings (list): A list of strings.
     """
     for string in list_of_strings:
-        print(string.center(os.get_terminal_size().columns))
+        print(string.center(terminal_size.columns))
 
 
 def boxer(lines):
@@ -670,7 +678,7 @@ def setup_api_key():
 
         # ASK FOR THE API KEY
         print("")
-        center_printer(["INITIAL SETUP"])
+        center_printer(os.get_terminal_size(), ["INITIAL SETUP"])
         print("\nPlease visit https://home.openweathermap.org/users/sign_up \n"
               "to get a free API key.\n")
 

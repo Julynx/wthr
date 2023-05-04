@@ -3,24 +3,24 @@
 import os
 import sys
 import signal
-import cursor
 import time as tm
-import requests
 import json
 from datetime import datetime, time, date, timedelta
-from geopy.geocoders import Nominatim
-import contextlib
 import subprocess
+import contextlib
+import requests
+import cursor
+from geopy.geocoders import Nominatim
 
 # Visit https://home.openweathermap.org/users/sign_up
 # to get a free API key.
-api_key = "YOUR_API_KEY_HERE"
+API_KEY = "YOUR_API_KEY_HERE"
 
 # If you do not paste your API key above, the program
 # will ask you for it and save it into the file:
 # ~/.config/wthr/api_key
 
-debug = False  # Set with --verbose flag
+DEBUG = False  # Set with --verbose flag
 
 
 s_clear_day = [
@@ -250,23 +250,23 @@ icons = {"Clear": clear,
          "Squall": s_squall,
          "Tornado": s_tornado}
 
-center = True
-s_buffer = []
+CENTER = True
+S_BUFFER = []
 
-update_interval = 3600  # Seconds between weather api calls
-city = ""
-lat, lon = "", ""
-global_packages = []
+UPDATE_INTERVAL = 3600  # Seconds between weather api calls
+CITY = ""
+LAT, LON = "", ""
+GLOBAL_PACKAGES = []
 
 
 def main():
 
-    global lat, lon, city, global_packages, debug
+    global LAT, LON, CITY, GLOBAL_PACKAGES, DEBUG
     mode = "default"
 
     # Get input arguments
     arg = args(["location"])
-    if "location" not in arg.keys():
+    if "location" not in arg:
         print("\n  Displays weather information from openweathermap.\n"
               "\n"
               "  Usage:           wthr [LOCATION] [OPTIONS] ...\n"
@@ -278,19 +278,19 @@ def main():
               "  -f               including minimum and maximum temperatures.\n"
               "  --verbose        Prints debug information whenever an API\n"
               "  -v               call fails due to a key error.\n")
-        exit()
+        sys.exit()
 
-    if "--mode" in arg.keys():
+    if "--mode" in arg:
         try:
             mode = arg["--mode"]
         except ValueError:
             mode = "default"
 
-    if "-f" in arg.keys():
+    if "-f" in arg:
         mode = "forecast"
 
-    if "--verbose" in arg.keys() or "-v" in arg.keys():
-        debug = True
+    if "--verbose" in arg or "-v" in arg:
+        DEBUG = True
         print("Running in debug mode.")
         tm.sleep(1)
 
@@ -301,7 +301,7 @@ def main():
     print("Computing latitude and longitude...")
     print("(This might take a while.)")
     arg_str = args_to_csv_string(len(sys.argv))
-    city, lat, lon = compute_location(arg_str)
+    CITY, LAT, LON = compute_location(arg_str)
 
     # 8-DAY FORECAST MODE
     if mode == "forecast":
@@ -309,13 +309,13 @@ def main():
         # Initial display
         subprocess.call(['tput', 'reset'])
         cursor.hide()
-        global_packages = get_daily_forecast()
-        if str(global_packages).startswith("KEY_ERROR"):
-            print("\n" + str(global_packages))
+        GLOBAL_PACKAGES = get_daily_forecast()
+        if str(GLOBAL_PACKAGES).startswith("KEY_ERROR"):
+            print("\n" + str(GLOBAL_PACKAGES))
             cursor.show()
-            exit()
+            sys.exit()
 
-        draw_forecast(global_packages)
+        draw_forecast(GLOBAL_PACKAGES)
 
         # Arm signal handler
         signal.signal(signal.SIGWINCH, forecast_handler)
@@ -323,19 +323,19 @@ def main():
         # Display loop
         while True:
             try:
-                tm.sleep(update_interval)
+                tm.sleep(UPDATE_INTERVAL)
                 subprocess.call(['tput', 'reset'])
                 cursor.hide()
-                global_packages = get_daily_forecast()
-                if str(global_packages).startswith("KEY_ERROR"):
-                    print("\n" + str(global_packages))
+                GLOBAL_PACKAGES = get_daily_forecast()
+                if str(GLOBAL_PACKAGES).startswith("KEY_ERROR"):
+                    print("\n" + str(GLOBAL_PACKAGES))
                     cursor.show()
-                    exit()
-                draw_forecast(global_packages)
+                    sys.exit()
+                draw_forecast(GLOBAL_PACKAGES)
             except KeyboardInterrupt:
                 subprocess.call(['tput', 'reset'])
                 cursor.show()
-                exit()
+                sys.exit()
 
     # REGULAR CURRENT WEATHER MODE
     else:
@@ -348,7 +348,7 @@ def main():
         if str(status).startswith("KEY_ERROR"):
             print("\n" + status)
             cursor.show()
-            exit()
+            sys.exit()
 
         redraw()
 
@@ -358,17 +358,17 @@ def main():
         # Display loop
         while True:
             try:
-                tm.sleep(update_interval)
+                tm.sleep(UPDATE_INTERVAL)
                 status = recalculate()
                 if str(status).startswith("KEY_ERROR"):
                     print("\n" + status)
                     cursor.show()
-                    exit()
+                    sys.exit()
                 redraw()
             except KeyboardInterrupt:
                 os.system("clear")
                 cursor.show()
-                exit()
+                sys.exit()
 
 
 def args_to_csv_string(max_args):
@@ -379,18 +379,14 @@ def args_to_csv_string(max_args):
     Returns:
         str: A string of comma-separated values.
     """
-    args = sys.argv[1:]
-    args = args[:max_args]
-    args = [str(arg) for arg in args]
+    arguments = [str(arg)
+                 for arg
+                 in sys.argv[1:max_args+1]]
 
-    new_args = []
-
-    for arg in args:
-        if arg.startswith("-"):
-            arg = ""
-        new_args.append(arg)
-
-    return ", ".join(new_args)
+    return ", ".join([a
+                      for a
+                      in arguments
+                      if not a.startswith("-")])
 
 
 def default_handler(signum, frame):
@@ -416,7 +412,7 @@ def forecast_handler(signum, frame):
     if signum == signal.SIGWINCH:
         subprocess.call(['tput', 'reset'])
         cursor.hide()
-        draw_forecast(global_packages)
+        draw_forecast(GLOBAL_PACKAGES)
 
 
 def redraw():
@@ -424,7 +420,7 @@ def redraw():
     Clears the screen and redraws the ui.
     """
     os.system("clear")
-    print(boxer(s_buffer), end="")
+    print(boxer(S_BUFFER), end="")
 
 
 def recalculate():
@@ -432,12 +428,11 @@ def recalculate():
     Obtains the current weather from the openweathermap api and
     updates the global variable s_buffer accordingly.
     """
-    global s_buffer, api_key    # Weather api key and buffer
-    global lat, lon, city       # Location data
+    global S_BUFFER
 
     # Make the API call and load the response
-    url = "https://api.openweathermap.org/data/2.5/" \
-        "onecall?lat=%s&lon=%s&appid=%s&units=metric" % (lat, lon, api_key)
+    url = "https://api.openweathermap.org/data/2.5/" + \
+          f"onecall?lat={LAT}&lon={LON}&appid={API_KEY}&units=metric"
     response = requests.get(url)
     data = json.loads(response.text)
 
@@ -445,61 +440,70 @@ def recalculate():
     try:
         status = data["current"]["weather"][0]["main"]
         temp = data["current"]["temp"]
-        temp = str(temp).split(".")[0]
+        temp = str(temp).split(".", maxsplit=1)[0]
 
     except KeyError:
 
         ret_val = "KEY_ERROR in recalculate(): Invalid API key."
 
-        if debug:
+        if DEBUG:
             ret_val += "\n - DEBUG INFORMATION FOLLOWS - \n"
             ret_val += str(json.dumps(data, indent=4, sort_keys=True))
 
         return ret_val
 
     # Update global vars
-    s_buffer = icons[status]
-    s_buffer[-1] = f"{city}"
-    s_buffer[-2] = temp + "°C"
+    S_BUFFER = icons[status]
+    S_BUFFER[-1] = f"{CITY}"
+    S_BUFFER[-2] = temp + "°C"
+
+    return 0
 
 
 def get_daily_forecast():
 
-    global s_buffer, api_key    # Weather api key and buffer
-    global lat, lon, city       # Location data
+    global S_BUFFER
 
     # Make the API call and load the response
-    url = "https://api.openweathermap.org/data/2.5/" \
-        "onecall?lat=%s&lon=%s&appid=%s&units=metric" % (lat, lon, api_key)
+    url = "https://api.openweathermap.org/data/2.5/" + \
+        f"onecall?lat={LAT}&lon={LON}&appid={API_KEY}&units=metric"
     response = requests.get(url)
     data = json.loads(response.text)
 
     try:
-        mins = [int(data["daily"][x]["temp"]["min"]) + 1 for x in range(8)]
-        maxs = [int(data["daily"][x]["temp"]["max"]) + 1 for x in range(8)]
-        wthr = [data["daily"][x]["weather"][0]["main"] for x in range(8)]
+        mins = [int(data["daily"][x]["temp"]["min"]) + 1
+                for x
+                in range(8)]
+
+        maxs = [int(data["daily"][x]["temp"]["max"]) + 1
+                for x
+                in range(8)]
+
+        wthr = [data["daily"][x]["weather"][0]["main"]
+                for x
+                in range(8)]
 
     except KeyError:
 
         ret_val = "KEY_ERROR in get_daily_forecast(): Invalid API key."
 
-        if debug:
+        if DEBUG:
             ret_val += "\n - DEBUG INFORMATION FOLLOWS - \n"
             ret_val += str(json.dumps(data, indent=4, sort_keys=True))
 
         return ret_val
 
     # Format the data into lists of strings
-    s_buffer = []
+    S_BUFFER = []
     for i in range(8):
-        s_buffer.append(f"{wthr[i]}")
-        s_buffer.append(f"{mins[i]}°C")
-        s_buffer.append(f"{maxs[i]}°C")
+        S_BUFFER.append(f"{wthr[i]}")
+        S_BUFFER.append(f"{mins[i]}°C")
+        S_BUFFER.append(f"{maxs[i]}°C")
 
     # Package the data to be returned
     packages = []
     i = 0
-    for wthr, x, y in zip(wthr, mins, maxs):
+    for wthr, min_temp, max_temp in zip(wthr, mins, maxs):
 
         package = []
 
@@ -509,10 +513,11 @@ def get_daily_forecast():
         package.append(dia.center(22))
         icono = icons[wthr][:-2]
 
-        for line in icono:
-            package.append(line.center(22))
+        package += [line.center(22)
+                    for line
+                    in icono]
 
-        package.append((f"| ▼ {x}ºC || ▲ {y}ºC |").center(22))
+        package.append((f"| ▼ {min_temp}ºC || ▲ {max_temp}ºC |").center(22))
         if i == 7:
             package.append("")
         else:
@@ -638,7 +643,7 @@ def boxer(lines):
     height = size.lines
 
     # Add the right amount of empty lines to vertically center the content
-    if center:
+    if CENTER:
         print("\n" * int((height/2) - ((len(lines)-2)/2)), end="")
 
     # Print the lines horizontally centered
@@ -659,18 +664,18 @@ API_FILE = os.path.expanduser("~") + "/.config/wthr/api_key"
 
 def setup_api_key():
 
-    global api_key
+    global API_KEY
 
-    if str(test_api_key(api_key)).startswith("OK"):
+    if str(test_api_key(API_KEY)).startswith("OK"):
 
         # DO NOTHING IF API KEY IS ALREADY SET
         return
 
-    elif os.path.isfile(API_FILE):
+    if os.path.isfile(API_FILE):
 
         # UPDATE THE KEY FROM THE FILE IF THE FILE EXISTS
-        with open(API_FILE, "r") as f:
-            api_key = f.readline().strip()
+        with open(API_FILE, "r", encoding='utf-8') as file:
+            API_KEY = file.readline().strip()
 
     else:
 
@@ -689,7 +694,7 @@ def setup_api_key():
                 aux_key = input("[Enter your API key]: ")
             except KeyboardInterrupt:
                 subprocess.call(['tput', 'reset'])
-                exit()
+                sys.exit()
 
             print("")
             valid = test_api_key(aux_key)
@@ -698,36 +703,36 @@ def setup_api_key():
 
         # CREATE THE FOLDERS ALONG THE ROUTE AND WRITE THE API KEY
         os.makedirs(os.path.dirname(API_FILE), exist_ok=True)
-        with open(API_FILE, "w") as f:
-            f.write(aux_key)
+        with open(API_FILE, "w", encoding='utf-8') as file:
+            file.write(aux_key)
 
         # UPDATE THE GLOBAL VARIABLE
-        api_key = aux_key
+        API_KEY = aux_key
 
 
 def test_api_key(test_key):
 
-    url = "https://api.openweathermap.org/data/2.5/" \
-        "onecall?lat=%s&lon=%s&appid=%s&units=metric" % (0, 0, test_key)
+    url = "https://api.openweathermap.org/data/2.5/" + \
+        f"onecall?lat=0&lon=0&appid={test_key}&units=metric"
     response = requests.get(url)
     data = json.loads(response.text)
 
     try:
-        data["current"]["weather"][0]["main"]
+        _ = data["current"]["weather"][0]["main"]
         return "OK"
 
     except KeyError:
 
         ret_val = "KEY_ERROR in test_api_key(): Invalid API key."
 
-        if debug:
+        if DEBUG:
             ret_val += "\n - DEBUG INFORMATION FOLLOWS - \n"
             ret_val += str(json.dumps(data, indent=4, sort_keys=True))
 
         return ret_val
 
 
-def args(positional=[]):
+def args(positional=None):
     """
     $: program joe 1234 -keep -host=127.0.0.1
 
@@ -738,6 +743,7 @@ def args(positional=[]):
     >> -keep:       True
     >> -host:       127.0.0.1
     """
+    positional = positional or []
     args_dict = {}
 
     # Store positional arguments
@@ -756,7 +762,7 @@ def args(positional=[]):
             value = str(sys.argv[i]).split("=")[1]
         except IndexError:
             value = True
-        args_dict[str(sys.argv[i]).split("=")[0]] = value
+        args_dict[str(sys.argv[i]).split("=", maxsplit=1)[0]] = value
 
     return args_dict
 
@@ -783,8 +789,8 @@ def compute_location(city_str):
     while True:
         try:
             # Throws timeout exception if the API call takes too long
-            g = Nominatim(user_agent="wthr")
-            location = g.geocode(city_str)
+            provider = Nominatim(user_agent="wthr")
+            location = provider.geocode(city_str)
 
             # Throws AttributeError if location is None (no location found)
             lat = location.latitude
@@ -796,19 +802,18 @@ def compute_location(city_str):
         except KeyboardInterrupt:
             os.system("clear")
             cursor.show()
-            exit()
+            sys.exit()
 
         # Clean exit if the location could not be found
         except AttributeError:
             os.system("clear")
-            print("Could not find location of %s." % city_str)
+            print(f"Could not find location of {city_str}.")
             cursor.show()
-            exit()
+            sys.exit()
 
         # Retry if the API call fails
-        except:
+        except Exception:
             tm.sleep(1)
-            pass
 
     return city, lat, lon
 

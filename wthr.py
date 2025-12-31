@@ -8,9 +8,13 @@ import json
 from datetime import datetime, time, date, timedelta
 import subprocess
 import contextlib
+import platform
 import requests
 import cursor
 from geopy.geocoders import Nominatim
+
+# Detect operating system
+IS_WINDOWS = platform.system() == "Windows"
 
 # Visit https://home.openweathermap.org/users/sign_up
 # to get a free API key.
@@ -259,6 +263,16 @@ LAT, LON = "", ""
 GLOBAL_PACKAGES = []
 
 
+def clear_screen():
+    """
+    Clears the terminal screen in a cross-platform way.
+    """
+    if IS_WINDOWS:
+        os.system('cls')
+    else:
+        subprocess.call(['tput', 'reset'])
+
+
 def main():
 
     global LAT, LON, CITY, GLOBAL_PACKAGES, DEBUG
@@ -307,7 +321,7 @@ def main():
     if mode == "forecast":
 
         # Initial display
-        subprocess.call(['tput', 'reset'])
+        clear_screen()
         cursor.hide()
         GLOBAL_PACKAGES = get_daily_forecast()
         if str(GLOBAL_PACKAGES).startswith("KEY_ERROR"):
@@ -317,14 +331,15 @@ def main():
 
         draw_forecast(GLOBAL_PACKAGES)
 
-        # Arm signal handler
-        signal.signal(signal.SIGWINCH, forecast_handler)
+        # Arm signal handler (only on Unix systems)
+        if not IS_WINDOWS and hasattr(signal, 'SIGWINCH'):
+            signal.signal(signal.SIGWINCH, forecast_handler)
 
         # Display loop
         while True:
             try:
                 tm.sleep(UPDATE_INTERVAL)
-                subprocess.call(['tput', 'reset'])
+                clear_screen()
                 cursor.hide()
                 GLOBAL_PACKAGES = get_daily_forecast()
                 if str(GLOBAL_PACKAGES).startswith("KEY_ERROR"):
@@ -333,7 +348,7 @@ def main():
                     sys.exit()
                 draw_forecast(GLOBAL_PACKAGES)
             except KeyboardInterrupt:
-                subprocess.call(['tput', 'reset'])
+                clear_screen()
                 cursor.show()
                 sys.exit()
 
@@ -352,8 +367,9 @@ def main():
 
         redraw()
 
-        # Arm signal handler
-        signal.signal(signal.SIGWINCH, default_handler)
+        # Arm signal handler (only on Unix systems)
+        if not IS_WINDOWS and hasattr(signal, 'SIGWINCH'):
+            signal.signal(signal.SIGWINCH, default_handler)
 
         # Display loop
         while True:
@@ -366,7 +382,7 @@ def main():
                     sys.exit()
                 redraw()
             except KeyboardInterrupt:
-                os.system("clear")
+                clear_screen()
                 cursor.show()
                 sys.exit()
 
@@ -397,7 +413,7 @@ def default_handler(signum, frame):
         signum (int): The signal number.
         frame (frame): The frame.
     """
-    if signum == signal.SIGWINCH:
+    if hasattr(signal, 'SIGWINCH') and signum == signal.SIGWINCH:
         redraw()
 
 
@@ -409,8 +425,8 @@ def forecast_handler(signum, frame):
         signum (int): The signal number.
         frame (frame): The frame.
     """
-    if signum == signal.SIGWINCH:
-        subprocess.call(['tput', 'reset'])
+    if hasattr(signal, 'SIGWINCH') and signum == signal.SIGWINCH:
+        clear_screen()
         cursor.hide()
         draw_forecast(GLOBAL_PACKAGES)
 
@@ -419,7 +435,7 @@ def redraw():
     """
     Clears the screen and redraws the ui.
     """
-    os.system("clear")
+    clear_screen()
     print(boxer(S_BUFFER), end="")
 
 
@@ -659,7 +675,11 @@ def boxer(lines):
     return string
 
 
-API_FILE = os.path.expanduser("~") + "/.config/wthr/api_key"
+# Set API file path based on OS
+if IS_WINDOWS:
+    API_FILE = os.path.join(os.path.expanduser("~"), "AppData", "Local", "wthr", "api_key")
+else:
+    API_FILE = os.path.join(os.path.expanduser("~"), ".config", "wthr", "api_key")
 
 
 def setup_api_key():
@@ -679,7 +699,7 @@ def setup_api_key():
 
     else:
 
-        subprocess.call(['tput', 'reset'])
+        clear_screen()
 
         # ASK FOR THE API KEY
         print("")
@@ -693,7 +713,7 @@ def setup_api_key():
             try:
                 aux_key = input("[Enter your API key]: ")
             except KeyboardInterrupt:
-                subprocess.call(['tput', 'reset'])
+                clear_screen()
                 sys.exit()
 
             print("")
@@ -800,13 +820,13 @@ def compute_location(city_str):
 
         # Clean exit if user presses Ctrl+C
         except KeyboardInterrupt:
-            os.system("clear")
+            clear_screen()
             cursor.show()
             sys.exit()
 
         # Clean exit if the location could not be found
         except AttributeError:
-            os.system("clear")
+            clear_screen()
             print(f"Could not find location of {city_str}.")
             cursor.show()
             sys.exit()

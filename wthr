@@ -471,11 +471,11 @@ def get_daily_forecast():
     data = json.loads(response.text)
 
     try:
-        mins = [int(data["daily"][x]["temp"]["min"]) + 1
+        mins = [int(data["daily"][x]["temp"]["min"])
                 for x
                 in range(8)]
 
-        maxs = [int(data["daily"][x]["temp"]["max"]) + 1
+        maxs = [int(data["daily"][x]["temp"]["max"])
                 for x
                 in range(8)]
 
